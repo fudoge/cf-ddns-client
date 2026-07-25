@@ -172,3 +172,7 @@ To rotate logs on macOS, create `/etc/newsyslog.d/cfddns.conf`:
 /usr/local/var/log/cfddns.log    644     5       1000    *       J
 /usr/local/var/log/cfddns.err    644     5       1000    *       J
 ```
+
+## License
+
+MIT. See [LICENSE](LICENSE).
