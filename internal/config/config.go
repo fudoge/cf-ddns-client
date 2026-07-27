@@ -44,7 +44,7 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
-	flagvars, err := parseFlags()
+	flagvars, err := parseFlags(os.Args[1:])
 	if err != nil {
 		return nil, err
 	}
@@ -72,10 +72,14 @@ func requireEnv(key string) (string, error) {
 	return val, nil
 }
 
-func parseFlags() (*flagVars, error) {
-	timeout := flag.Int("timeout", 2, "Request timeout in seconds")
-	mode := flag.String("mode", "replace",
+func parseFlags(args []string) (*flagVars, error) {
+	flags := flag.NewFlagSet("cfddns", flag.ContinueOnError)
+	timeout := flags.Int("timeout", 2, "Request timeout in seconds")
+	mode := flags.String("mode", "replace",
 		"DNS sync mode: replace keeps only the current public IP; append adds it if missing")
+	if err := flags.Parse(args); err != nil {
+		return nil, err
+	}
 
 	if *timeout <= 0 {
 		return nil, fmt.Errorf("timeout must be greater than zero")
