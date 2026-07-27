@@ -6,14 +6,18 @@ import (
 	"net/netip"
 )
 
-type Syncer struct {
-	dns *cloudflare.Client
+type DNSClient interface {
+	ListARecords(ctx context.Context, name string) ([]cloudflare.ARecord, error)
+	CreateARecord(ctx context.Context, name string, ip netip.Addr) error
+	DeleteARecord(ctx context.Context, recordID string) error
 }
 
-func NewSyncer(c *cloudflare.Client) *Syncer {
-	return &Syncer{
-		dns: c,
-	}
+type Syncer struct {
+	dns DNSClient
+}
+
+func NewSyncer(c DNSClient) *Syncer {
+	return &Syncer{dns: c}
 }
 
 func (s *Syncer) Append(ctx context.Context, name string, ip netip.Addr) error {
