@@ -8,14 +8,6 @@ configured Cloudflare DNS record in either `replace` or `append` mode.
 Cloudflare Go SDK docs:
 [https://developers.cloudflare.com/api/go/resources/dns/](https://developers.cloudflare.com/api/go/resources/dns/)
 
-## Build
-
-```bash
-go build -o cfddns ./cmd/cfddns
-chmod +x cfddns
-sudo mv cfddns /usr/local/bin/cfddns
-```
-
 ## Configuration
 
 Required environment variables:
@@ -45,7 +37,101 @@ append
   Existing A records are kept.
 ```
 
-## Run
+## Container
+
+Published images are available from GitHub Container Registry:
+
+```text
+ghcr.io/fudoge/cf-ddns-client
+```
+
+Run once with Docker:
+
+```bash
+docker run --rm \
+  -e CF_API_TOKEN=xxxx \
+  -e ZONE_ID=xxxx \
+  -e DOMAIN_NAME=home.example.com \
+  ghcr.io/fudoge/cf-ddns-client:latest \
+  --mode replace \
+  --timeout 2
+```
+
+For a tagged release, pin the image tag instead of using `latest`:
+
+```bash
+docker run --rm \
+  -e CF_API_TOKEN=xxxx \
+  -e ZONE_ID=xxxx \
+  -e DOMAIN_NAME=home.example.com \
+  ghcr.io/fudoge/cf-ddns-client:0.1.0 \
+  --mode replace \
+  --timeout 2
+```
+
+## Kubernetes
+
+CronJob example:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cfddns
+type: Opaque
+stringData:
+  CF_API_TOKEN: xxxx
+  ZONE_ID: xxxx
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cfddns
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: cfddns
+              image: ghcr.io/fudoge/cf-ddns-client:0.1.0
+              imagePullPolicy: IfNotPresent
+              args:
+                - --mode
+                - replace
+                - --timeout
+                - "2"
+              env:
+                - name: DOMAIN_NAME
+                  value: home.example.com
+                - name: CF_API_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: cfddns
+                      key: CF_API_TOKEN
+                - name: ZONE_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: cfddns
+                      key: ZONE_ID
+```
+
+## Binary
+
+Download a release archive from the GitHub Releases page, or build from source:
+
+```bash
+go build -o cfddns ./cmd/cfddns
+chmod +x cfddns
+sudo mv cfddns /usr/local/bin/cfddns
+```
+
+Run the binary:
 
 ```bash
 CF_API_TOKEN=xxxx \
