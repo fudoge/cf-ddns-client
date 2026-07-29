@@ -38,7 +38,7 @@ func TestIpifyClient_Resolve(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprint(w, tt.body)
+				_, _ = fmt.Fprint(w, tt.body)
 			}))
 			defer server.Close()
 
@@ -57,7 +57,7 @@ func TestIpifyClient_Resolve(t *testing.T) {
 
 func TestIpifyClient_Resolve_InvalidIP(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "not-an-ip")
+		_, _ = fmt.Fprint(w, "not-an-ip")
 	}))
 	defer server.Close()
 
