@@ -41,7 +41,10 @@ repos:
   - repo: https://github.com/golangci/golangci-lint
     rev: v2.12.2
     hooks:
-      - id: golangci-lint
+      - id: golangci-lint-full
+        name: golangci-lint
+        args: [./...]
+        pass_filenames: false
         stages: [pre-commit]
 
   - repo: local

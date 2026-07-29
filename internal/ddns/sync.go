@@ -1,9 +1,10 @@
 package ddns
 
 import (
-	"cf-ddns-client/internal/cloudflare"
 	"context"
 	"net/netip"
+
+	"github.com/fudoge/cf-ddns-client/internal/cloudflare"
 )
 
 type DNSClient interface {
