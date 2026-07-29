@@ -1,12 +1,13 @@
 package main
 
 import (
-	"cf-ddns-client/internal/cloudflare"
-	"cf-ddns-client/internal/config"
-	"cf-ddns-client/internal/ddns"
-	"cf-ddns-client/internal/publicip"
 	"context"
 	"log"
+
+	"github.com/fudoge/cf-ddns-client/internal/cloudflare"
+	"github.com/fudoge/cf-ddns-client/internal/config"
+	"github.com/fudoge/cf-ddns-client/internal/ddns"
+	"github.com/fudoge/cf-ddns-client/internal/publicip"
 )
 
 func main() {

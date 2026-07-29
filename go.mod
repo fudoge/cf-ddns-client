@@ -1,4 +1,4 @@
-module cf-ddns-client
+module github.com/fudoge/cf-ddns-client
 
 go 1.25.12
 

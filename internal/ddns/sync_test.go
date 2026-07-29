@@ -1,11 +1,12 @@
 package ddns
 
 import (
-	"cf-ddns-client/internal/cloudflare"
 	"context"
 	"net/netip"
 	"reflect"
 	"testing"
+
+	"github.com/fudoge/cf-ddns-client/internal/cloudflare"
 )
 
 type fakeDNSClient struct {
