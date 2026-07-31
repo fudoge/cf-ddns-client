@@ -4,23 +4,28 @@ import "testing"
 
 func TestParseFlags(t *testing.T) {
 	tests := []struct {
-		name        string
-		args        []string
-		wantTimeout int
-		wantMode    string
-		wantErr     bool
+		name         string
+		args         []string
+		wantTimeout  int
+		wantMode     string
+		wantEndpoint string
+		wantJSONPath string
+		wantErr      bool
 	}{
 		{
-			name:        "uses defaults",
-			args:        []string{},
-			wantTimeout: 2,
-			wantMode:    "replace",
+			name:         "uses defaults",
+			args:         []string{},
+			wantTimeout:  2,
+			wantMode:     "replace",
+			wantEndpoint: "https://api.ipify.org",
 		},
 		{
-			name:        "uses provided flags",
-			args:        []string{"--mode", "append", "--timeout", "5"},
-			wantTimeout: 5,
-			wantMode:    "append",
+			name:         "uses provided flags",
+			args:         []string{"--mode", "append", "--timeout", "5", "--endpoint", "https://example.com/ip", "--jsonpath", "$.ip"},
+			wantTimeout:  5,
+			wantMode:     "append",
+			wantEndpoint: "https://example.com/ip",
+			wantJSONPath: "$.ip",
 		},
 		{
 			name:    "rejects zero timeout",
@@ -65,6 +70,14 @@ func TestParseFlags(t *testing.T) {
 
 			if got.Mode != tt.wantMode {
 				t.Fatalf("Mode = %q, want %q", got.Mode, tt.wantMode)
+			}
+
+			if got.Endpoint != tt.wantEndpoint {
+				t.Fatalf("Endpoint = %q, want %q", got.Endpoint, tt.wantEndpoint)
+			}
+
+			if got.JSONPath != tt.wantJSONPath {
+				t.Fatalf("JSONPath = %q, want %q", got.JSONPath, tt.wantJSONPath)
 			}
 		})
 	}

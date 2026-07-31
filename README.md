@@ -2,8 +2,9 @@
 
 Small DDNS client for Cloudflare DNS A records.
 
-The client fetches the current public IPv4 address from ipify, then syncs the
-configured Cloudflare DNS record in either `replace` or `append` mode.
+The client fetches the current public IPv4 address from a configurable endpoint,
+then syncs the configured Cloudflare DNS record in either `replace` or `append`
+mode. The default endpoint is ipify.
 
 Cloudflare Go SDK docs:
 [https://developers.cloudflare.com/api/go/resources/dns/](https://developers.cloudflare.com/api/go/resources/dns/)
@@ -21,8 +22,21 @@ DOMAIN_NAME   DNS record name to sync, e.g. home.example.com
 Flags:
 
 ```text
---mode      DNS sync mode. Allowed: replace, append. Default: replace
---timeout   Per-request timeout in seconds. Default: 2
+--mode       DNS sync mode. Allowed: replace, append. Default: replace
+--timeout    Per-request timeout in seconds. Default: 2
+--endpoint   Public IP provider endpoint. Default: https://api.ipify.org
+--jsonpath   JSONPath expression for JSON responses. If set, the endpoint
+             response is parsed as JSON and the selected value is used as the IP.
+```
+
+Public IP provider examples:
+
+```bash
+# Plain text response, compatible with the default ipify endpoint.
+cfddns --endpoint https://api.ipify.org
+
+# JSON response.
+cfddns --endpoint 'https://api64.ipify.org?format=json' --jsonpath '$.ip'
 ```
 
 Modes:
@@ -54,7 +68,8 @@ docker run --rm \
   -e DOMAIN_NAME=home.example.com \
   ghcr.io/fudoge/cf-ddns-client:latest \
   --mode replace \
-  --timeout 2
+  --timeout 2 \
+  --endpoint https://api.ipify.org
 ```
 
 For a tagged release, pin the image tag instead of using `latest`:
@@ -66,7 +81,8 @@ docker run --rm \
   -e DOMAIN_NAME=home.example.com \
   ghcr.io/fudoge/cf-ddns-client:0.1.0 \
   --mode replace \
-  --timeout 2
+  --timeout 2 \
+  --endpoint https://api.ipify.org
 ```
 
 ## Kubernetes

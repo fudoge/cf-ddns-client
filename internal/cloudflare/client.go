@@ -23,13 +23,13 @@ type ARecord struct {
 	Content netip.Addr
 }
 
-func NewClient(token, zoneID string, timeoutsec int) *Client {
+func NewClient(token, zoneID string, timeout time.Duration) *Client {
 	return &Client{
 		client: cloudflare.NewClient(
 			option.WithAPIToken(token),
 		),
 		zoneID:  zoneID,
-		timeout: time.Duration(timeoutsec) * time.Second,
+		timeout: timeout,
 	}
 }
 
