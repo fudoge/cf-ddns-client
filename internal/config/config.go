@@ -123,7 +123,7 @@ func parseFlags(args []string) (*flagVars, error) {
 		"DNS sync mode: replace keeps only the current public IP; append adds it if missing")
 	endpoint := flags.String("endpoint", "https://api.ipify.org", "Public IP provider URL endpoint. \nDefault: https://api.ipify.org")
 	jsonPath := flags.String("jsonpath", "", "Public IP API Response JSON path")
-	ttl := flags.Float64("ttl", 1, "TTL of the DNS record in seconds. \nDefault: 1(automatic)")
+	ttl := flags.Float64("ttl", 1, "DNS record TTL in seconds. Must be an integer. Allowed: 1 for automatic, or 60-86400. Default: 1")
 	if err := flags.Parse(args); err != nil {
 		return nil, err
 	}
