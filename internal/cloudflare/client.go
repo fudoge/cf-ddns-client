@@ -21,6 +21,7 @@ type ARecord struct {
 	ID      string
 	Name    string
 	Content netip.Addr
+	TTL     dns.TTL
 }
 
 func NewClient(token, zoneID string, timeout time.Duration) *Client {
@@ -59,6 +60,7 @@ func (c *Client) ListARecords(ctx context.Context, name string) ([]ARecord, erro
 			ID:      resp[i].ID,
 			Name:    resp[i].Name,
 			Content: content,
+			TTL:     resp[i].TTL,
 		}
 		records = append(records, rec)
 
@@ -67,16 +69,15 @@ func (c *Client) ListARecords(ctx context.Context, name string) ([]ARecord, erro
 	return records, nil
 }
 
-func (c *Client) CreateARecord(ctx context.Context, name string, ip netip.Addr) error {
+func (c *Client) CreateARecord(ctx context.Context, name string, ip netip.Addr, ttl dns.TTL) error {
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
 	_, err := c.client.DNS.Records.New(ctx, dns.RecordNewParams{
 		ZoneID: cloudflare.F(c.zoneID),
 		Body: dns.ARecordParam{
-			Name: cloudflare.F(name),
-			// TODO: replace TTL1 with a config value.
-			TTL:     cloudflare.F(dns.TTL1),
+			Name:    cloudflare.F(name),
+			TTL:     cloudflare.F(ttl),
 			Type:    cloudflare.F(dns.ARecordTypeA),
 			Content: cloudflare.F(ip.String()),
 		},
@@ -92,6 +93,27 @@ func (c *Client) DeleteARecord(ctx context.Context, recordID string) error {
 	_, err := c.client.DNS.Records.Delete(ctx, recordID, dns.RecordDeleteParams{
 		ZoneID: cloudflare.F(c.zoneID),
 	})
+
+	return err
+}
+
+func (c *Client) UpdateARecord(ctx context.Context, recordID, name string, ip netip.Addr, ttl dns.TTL) error {
+	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+
+	_, err := c.client.DNS.Records.Edit(
+		ctx,
+		recordID,
+		dns.RecordEditParams{
+			ZoneID: cloudflare.F(c.zoneID),
+			Body: dns.ARecordParam{
+				Name:    cloudflare.F(name),
+				TTL:     cloudflare.F(ttl),
+				Type:    cloudflare.F(dns.ARecordTypeA),
+				Content: cloudflare.F(ip.String()),
+			},
+		},
+	)
 
 	return err
 }

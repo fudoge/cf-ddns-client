@@ -34,9 +34,9 @@ func main() {
 
 	switch cfg.Mode {
 	case config.ModeAppend:
-		err = syncer.Append(ctx, cfg.Name, ip)
+		err = syncer.Append(ctx, cfg.Name, ip, cfg.TTL)
 	case config.ModeReplace:
-		err = syncer.Replace(ctx, cfg.Name, ip)
+		err = syncer.Replace(ctx, cfg.Name, ip, cfg.TTL)
 	default:
 		log.Fatalf("unsupported mode %q", cfg.Mode)
 	}

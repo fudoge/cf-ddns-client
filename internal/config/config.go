@@ -6,6 +6,8 @@ import (
 	"os"
 	"slices"
 	"time"
+
+	"github.com/cloudflare/cloudflare-go/v7/dns"
 )
 
 type UpdateMode int
@@ -24,6 +26,7 @@ const (
 
 type Config struct {
 	Name    string
+	TTL     dns.TTL
 	Timeout time.Duration
 
 	Mode           UpdateMode
@@ -33,6 +36,7 @@ type Config struct {
 
 type flagVars struct {
 	Timeout  int
+	TTL      dns.TTL
 	Mode     string
 	Endpoint string
 	JSONPath string
@@ -86,6 +90,7 @@ func Load() (*Config, error) {
 	c := &Config{
 		Name:    name,
 		Timeout: time.Duration(flagvars.Timeout) * time.Second,
+		TTL:     flagvars.TTL,
 
 		Mode: updateMode,
 		CFConfig: &CloudflareConfig{
@@ -118,6 +123,7 @@ func parseFlags(args []string) (*flagVars, error) {
 		"DNS sync mode: replace keeps only the current public IP; append adds it if missing")
 	endpoint := flags.String("endpoint", "https://api.ipify.org", "Public IP provider URL endpoint. \nDefault: https://api.ipify.org")
 	jsonPath := flags.String("jsonpath", "", "Public IP API Response JSON path")
+	ttl := flags.Float64("ttl", 1, "TTL of the DNS record in seconds. \nDefault: 1(automatic)")
 	if err := flags.Parse(args); err != nil {
 		return nil, err
 	}
@@ -130,8 +136,17 @@ func parseFlags(args []string) (*flagVars, error) {
 		return nil, fmt.Errorf("unsupported mode %q; allowed modes: %v", *mode, allowedModes)
 	}
 
+	if *ttl != 1 && (*ttl < 60 || *ttl > 86400) {
+		return nil, fmt.Errorf("invalid TTL value (expected 1 or 60~86400, got %f)", *ttl)
+	}
+
+	if *ttl != float64(int(*ttl)) {
+		return nil, fmt.Errorf("invalid TTL value (expected an integer, got %f)", *ttl)
+	}
+
 	return &flagVars{
 		Timeout:  *timeout,
+		TTL:      dns.TTL(*ttl),
 		Mode:     *mode,
 		Endpoint: *endpoint,
 		JSONPath: *jsonPath,
