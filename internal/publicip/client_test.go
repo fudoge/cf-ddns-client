@@ -46,11 +46,11 @@ func TestPlainClient_Resolve(t *testing.T) {
 			client := PlainClient{endpoint: server.URL}
 			got, err := client.Resolve(context.Background(), time.Second)
 			if err != nil {
-				t.Fatalf("Ipify Resolve() Error: %v", err)
+				t.Fatalf("plain Resolve() Error: %v", err)
 			}
 
 			if got != tt.want {
-				t.Fatalf("Ipify Resolve(): got %v, want %v", got, tt.want)
+				t.Fatalf("plain Resolve(): got %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -66,7 +66,7 @@ func TestPlainClient_Resolve_InvalidIP(t *testing.T) {
 	_, err := client.Resolve(context.Background(), time.Second)
 
 	if err == nil {
-		t.Fatalf("Plain Resolve(): got nil, want error")
+		t.Fatalf("plain Resolve(): got nil, want error")
 	}
 }
 
@@ -85,7 +85,7 @@ func TestJSONClient_Resolve(t *testing.T) {
 
 	want := netip.MustParseAddr("203.0.113.10")
 	if got != want {
-		t.Fatalf("JSON Resolve(): got %v, want %v", got, want)
+		t.Fatalf("json Resolve(): got %v, want %v", got, want)
 	}
 }
 
@@ -128,7 +128,7 @@ func TestJSONClient_Resolve_Errors(t *testing.T) {
 			client := JSONClient{endpoint: server.URL, jsonPath: tt.jsonPath}
 			_, err := client.Resolve(context.Background(), time.Second)
 			if err == nil {
-				t.Fatal("JSON Resolve() error = nil, want error")
+				t.Fatal("json Resolve() error = nil, want error")
 			}
 		})
 	}
