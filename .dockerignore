@@ -1,5 +1,8 @@
 .git
 .gitignore
+.yamllint
+.pre-commit-config.yaml
+Makefile
 Dockerfile
 README.md
 LICENSE

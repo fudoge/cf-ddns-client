@@ -2,8 +2,9 @@
 
 Small DDNS client for Cloudflare DNS A records.
 
-The client fetches the current public IPv4 address from ipify, then syncs the
-configured Cloudflare DNS record in either `replace` or `append` mode.
+The client fetches the current public IPv4 address from a configurable endpoint,
+then syncs the configured Cloudflare DNS record in either `replace` or `append`
+mode. The default endpoint is ipify.
 
 Cloudflare Go SDK docs:
 [https://developers.cloudflare.com/api/go/resources/dns/](https://developers.cloudflare.com/api/go/resources/dns/)
@@ -21,8 +22,23 @@ DOMAIN_NAME   DNS record name to sync, e.g. home.example.com
 Flags:
 
 ```text
---mode      DNS sync mode. Allowed: replace, append. Default: replace
---timeout   Per-request timeout in seconds. Default: 2
+--mode       DNS sync mode. Allowed: replace, append. Default: replace
+--timeout    Per-request timeout in seconds. Default: 2
+--ttl        DNS record TTL in seconds. Must be an integer.
+             Allowed: 1 for automatic, or 60-86400. Default: 1
+--endpoint   Public IP provider endpoint. Default: https://api.ipify.org
+--jsonpath   JSONPath expression for JSON responses. If set, the endpoint
+             response is parsed as JSON and the selected value is used as the IP.
+```
+
+Public IP provider examples:
+
+```bash
+# Plain text response, compatible with the default ipify endpoint.
+cfddns --endpoint https://api.ipify.org
+
+# JSON response.
+cfddns --endpoint 'https://api64.ipify.org?format=json' --jsonpath '$.ip'
 ```
 
 Modes:
@@ -31,6 +47,7 @@ Modes:
 replace
   Keep only the current public IPv4 address for DOMAIN_NAME.
   Existing A records with other IPs are deleted.
+  If the current IP already exists but has a different TTL, it is updated.
 
 append
   Add the current public IPv4 address if it is missing.
@@ -54,7 +71,9 @@ docker run --rm \
   -e DOMAIN_NAME=home.example.com \
   ghcr.io/fudoge/cf-ddns-client:latest \
   --mode replace \
-  --timeout 2
+  --timeout 2 \
+  --ttl 1 \
+  --endpoint https://api.ipify.org
 ```
 
 For a tagged release, pin the image tag instead of using `latest`:
@@ -66,7 +85,9 @@ docker run --rm \
   -e DOMAIN_NAME=home.example.com \
   ghcr.io/fudoge/cf-ddns-client:0.1.0 \
   --mode replace \
-  --timeout 2
+  --timeout 2 \
+  --ttl 1 \
+  --endpoint https://api.ipify.org
 ```
 
 ## Kubernetes
@@ -106,6 +127,8 @@ spec:
                 - replace
                 - --timeout
                 - "2"
+                - --ttl
+                - "1"
               env:
                 - name: DOMAIN_NAME
                   value: home.example.com
@@ -137,7 +160,7 @@ Run the binary:
 CF_API_TOKEN=xxxx \
 ZONE_ID=xxxx \
 DOMAIN_NAME=home.example.com \
-cfddns --mode replace --timeout 2
+cfddns --mode replace --timeout 2 --ttl 300
 ```
 
 ## Systemd Setup
@@ -151,7 +174,7 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/cfddns --mode replace --timeout 2
+ExecStart=/usr/local/bin/cfddns --mode replace --timeout 2 --ttl 300
 Environment=CF_API_TOKEN=xxxx
 Environment=ZONE_ID=xxxx
 Environment=DOMAIN_NAME=home.example.com
@@ -212,6 +235,8 @@ Create `~/Library/LaunchAgents/com.yourname.cfddns.plist`:
         <string>replace</string>
         <string>--timeout</string>
         <string>2</string>
+        <string>--ttl</string>
+        <string>300</string>
     </array>
 
     <key>EnvironmentVariables</key>

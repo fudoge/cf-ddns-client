@@ -5,24 +5,52 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"time"
+
+	"github.com/cloudflare/cloudflare-go/v7/dns"
+)
+
+type UpdateMode int
+
+const (
+	ModeReplace UpdateMode = iota
+	ModeAppend
+)
+
+type PublicIPResponseType int
+
+const (
+	ResponseTypePlain PublicIPResponseType = iota
+	ResponseTypeJSON
 )
 
 type Config struct {
 	Name    string
-	Timeout int
+	TTL     dns.TTL
+	Timeout time.Duration
 
-	Mode     string
-	CFConfig *CloudflareConfig
+	Mode           UpdateMode
+	CFConfig       *CloudflareConfig
+	PublicIPConfig *PublicIPSourceConfig
 }
 
 type flagVars struct {
-	Timeout int
-	Mode    string
+	Timeout  int
+	TTL      dns.TTL
+	Mode     string
+	Endpoint string
+	JSONPath string
 }
 
 type CloudflareConfig struct {
 	ZoneID   string
 	APIToken string
+}
+
+type PublicIPSourceConfig struct {
+	Endpoint     string
+	ResponseType PublicIPResponseType
+	JSONPath     string
 }
 
 var allowedModes []string = []string{"replace", "append"}
@@ -49,14 +77,30 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
+	updateMode := ModeReplace
+	if flagvars.Mode == "append" {
+		updateMode = ModeAppend
+	}
+
+	responseType := ResponseTypePlain
+	if flagvars.JSONPath != "" {
+		responseType = ResponseTypeJSON
+	}
+
 	c := &Config{
 		Name:    name,
-		Timeout: flagvars.Timeout,
+		Timeout: time.Duration(flagvars.Timeout) * time.Second,
+		TTL:     flagvars.TTL,
 
-		Mode: flagvars.Mode,
+		Mode: updateMode,
 		CFConfig: &CloudflareConfig{
 			ZoneID:   zoneID,
 			APIToken: apiToken,
+		},
+		PublicIPConfig: &PublicIPSourceConfig{
+			Endpoint:     flagvars.Endpoint,
+			ResponseType: responseType,
+			JSONPath:     flagvars.JSONPath,
 		},
 	}
 
@@ -77,6 +121,9 @@ func parseFlags(args []string) (*flagVars, error) {
 	timeout := flags.Int("timeout", 2, "Request timeout in seconds")
 	mode := flags.String("mode", "replace",
 		"DNS sync mode: replace keeps only the current public IP; append adds it if missing")
+	endpoint := flags.String("endpoint", "https://api.ipify.org", "Public IP provider URL endpoint. \nDefault: https://api.ipify.org")
+	jsonPath := flags.String("jsonpath", "", "Public IP API Response JSON path")
+	ttl := flags.Float64("ttl", 1, "DNS record TTL in seconds. Must be an integer. Allowed: 1 for automatic, or 60-86400. Default: 1")
 	if err := flags.Parse(args); err != nil {
 		return nil, err
 	}
@@ -89,8 +136,19 @@ func parseFlags(args []string) (*flagVars, error) {
 		return nil, fmt.Errorf("unsupported mode %q; allowed modes: %v", *mode, allowedModes)
 	}
 
+	if *ttl != 1 && (*ttl < 60 || *ttl > 86400) {
+		return nil, fmt.Errorf("invalid TTL value (expected 1 or 60~86400, got %f)", *ttl)
+	}
+
+	if *ttl != float64(int(*ttl)) {
+		return nil, fmt.Errorf("invalid TTL value (expected an integer, got %f)", *ttl)
+	}
+
 	return &flagVars{
-		Timeout: *timeout,
-		Mode:    *mode,
+		Timeout:  *timeout,
+		TTL:      dns.TTL(*ttl),
+		Mode:     *mode,
+		Endpoint: *endpoint,
+		JSONPath: *jsonPath,
 	}, nil
 }

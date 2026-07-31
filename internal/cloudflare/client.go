@@ -6,9 +6,9 @@ import (
 	"net/netip"
 	"time"
 
-	"github.com/cloudflare/cloudflare-go/v6"
-	"github.com/cloudflare/cloudflare-go/v6/dns"
-	"github.com/cloudflare/cloudflare-go/v6/option"
+	"github.com/cloudflare/cloudflare-go/v7"
+	"github.com/cloudflare/cloudflare-go/v7/dns"
+	"github.com/cloudflare/cloudflare-go/v7/option"
 )
 
 type Client struct {
@@ -21,15 +21,16 @@ type ARecord struct {
 	ID      string
 	Name    string
 	Content netip.Addr
+	TTL     dns.TTL
 }
 
-func NewClient(token, zoneID string, timeoutsec int) *Client {
+func NewClient(token, zoneID string, timeout time.Duration) *Client {
 	return &Client{
 		client: cloudflare.NewClient(
 			option.WithAPIToken(token),
 		),
 		zoneID:  zoneID,
-		timeout: time.Duration(timeoutsec) * time.Second,
+		timeout: timeout,
 	}
 }
 
@@ -59,6 +60,7 @@ func (c *Client) ListARecords(ctx context.Context, name string) ([]ARecord, erro
 			ID:      resp[i].ID,
 			Name:    resp[i].Name,
 			Content: content,
+			TTL:     resp[i].TTL,
 		}
 		records = append(records, rec)
 
@@ -67,16 +69,15 @@ func (c *Client) ListARecords(ctx context.Context, name string) ([]ARecord, erro
 	return records, nil
 }
 
-func (c *Client) CreateARecord(ctx context.Context, name string, ip netip.Addr) error {
+func (c *Client) CreateARecord(ctx context.Context, name string, ip netip.Addr, ttl dns.TTL) error {
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
 	_, err := c.client.DNS.Records.New(ctx, dns.RecordNewParams{
 		ZoneID: cloudflare.F(c.zoneID),
 		Body: dns.ARecordParam{
-			Name: cloudflare.F(name),
-			// TODO: replace TTL1 with a config value.
-			TTL:     cloudflare.F(dns.TTL1),
+			Name:    cloudflare.F(name),
+			TTL:     cloudflare.F(ttl),
 			Type:    cloudflare.F(dns.ARecordTypeA),
 			Content: cloudflare.F(ip.String()),
 		},
@@ -92,6 +93,27 @@ func (c *Client) DeleteARecord(ctx context.Context, recordID string) error {
 	_, err := c.client.DNS.Records.Delete(ctx, recordID, dns.RecordDeleteParams{
 		ZoneID: cloudflare.F(c.zoneID),
 	})
+
+	return err
+}
+
+func (c *Client) UpdateARecord(ctx context.Context, recordID, name string, ip netip.Addr, ttl dns.TTL) error {
+	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+
+	_, err := c.client.DNS.Records.Edit(
+		ctx,
+		recordID,
+		dns.RecordEditParams{
+			ZoneID: cloudflare.F(c.zoneID),
+			Body: dns.ARecordParam{
+				Name:    cloudflare.F(name),
+				TTL:     cloudflare.F(ttl),
+				Type:    cloudflare.F(dns.ARecordTypeA),
+				Content: cloudflare.F(ip.String()),
+			},
+		},
+	)
 
 	return err
 }

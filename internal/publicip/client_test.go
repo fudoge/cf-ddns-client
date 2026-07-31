@@ -7,9 +7,10 @@ import (
 	"net/http/httptest"
 	"net/netip"
 	"testing"
+	"time"
 )
 
-func TestIpifyClient_Resolve(t *testing.T) {
+func TestPlainClient_Resolve(t *testing.T) {
 	tests := []struct {
 		name string
 		body string
@@ -42,29 +43,93 @@ func TestIpifyClient_Resolve(t *testing.T) {
 			}))
 			defer server.Close()
 
-			client := IpifyClient{endpoint: server.URL}
-			got, err := client.Resolve(context.Background(), 1)
+			client := PlainClient{endpoint: server.URL}
+			got, err := client.Resolve(context.Background(), time.Second)
 			if err != nil {
-				t.Fatalf("Ipify Resolve() Error: %v", err)
+				t.Fatalf("plain Resolve() Error: %v", err)
 			}
 
 			if got != tt.want {
-				t.Fatalf("Ipify Resolve(): got %v, want %v", got, tt.want)
+				t.Fatalf("plain Resolve(): got %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestIpifyClient_Resolve_InvalidIP(t *testing.T) {
+func TestPlainClient_Resolve_InvalidIP(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = fmt.Fprint(w, "not-an-ip")
 	}))
 	defer server.Close()
 
-	client := IpifyClient{endpoint: server.URL}
-	_, err := client.Resolve(context.Background(), 1)
+	client := PlainClient{endpoint: server.URL}
+	_, err := client.Resolve(context.Background(), time.Second)
 
 	if err == nil {
-		t.Fatalf("Ipify Resolve(): got nil, want error")
+		t.Fatalf("plain Resolve(): got nil, want error")
+	}
+}
+
+func TestJSONClient_Resolve(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = fmt.Fprint(w, `{"ip":"203.0.113.10"}`)
+	}))
+	defer server.Close()
+
+	client := JSONClient{endpoint: server.URL, jsonPath: "$.ip"}
+	got, err := client.Resolve(context.Background(), time.Second)
+	if err != nil {
+		t.Fatalf("JSON Resolve() error = %v", err)
+	}
+
+	want := netip.MustParseAddr("203.0.113.10")
+	if got != want {
+		t.Fatalf("json Resolve(): got %v, want %v", got, want)
+	}
+}
+
+func TestJSONClient_Resolve_Errors(t *testing.T) {
+	tests := []struct {
+		name     string
+		body     string
+		jsonPath string
+	}{
+		{
+			name:     "missing path",
+			body:     `{"ip":"203.0.113.10"}`,
+			jsonPath: "$.address",
+		},
+		{
+			name:     "non-string value",
+			body:     `{"ip":203}`,
+			jsonPath: "$.ip",
+		},
+		{
+			name:     "invalid ip",
+			body:     `{"ip":"not-an-ip"}`,
+			jsonPath: "$.ip",
+		},
+		{
+			name:     "invalid json",
+			body:     `not-json`,
+			jsonPath: "$.ip",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = fmt.Fprint(w, tt.body)
+			}))
+			defer server.Close()
+
+			client := JSONClient{endpoint: server.URL, jsonPath: tt.jsonPath}
+			_, err := client.Resolve(context.Background(), time.Second)
+			if err == nil {
+				t.Fatal("json Resolve() error = nil, want error")
+			}
+		})
 	}
 }
