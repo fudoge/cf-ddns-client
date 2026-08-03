@@ -33,6 +33,12 @@ func (s *Syncer) Append(ctx context.Context, name string, ip netip.Addr, ttl dns
 	for _, record := range records {
 		if record.Content == ip {
 			exists = true
+			if record.TTL != ttl {
+				err := s.dns.UpdateARecord(ctx, record.ID, name, ip, ttl)
+				if err != nil {
+					return err
+				}
+			}
 			break
 		}
 	}
