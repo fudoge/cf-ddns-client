@@ -78,6 +78,7 @@ func TestSyncer_Append(t *testing.T) {
 		name        string
 		records     []cloudflare.ARecord
 		wantCreated int
+		wantUpdated []fakeRecordChange
 	}{
 		{
 			name:        "creates record when IP is missing",
@@ -95,6 +96,26 @@ func TestSyncer_Append(t *testing.T) {
 				},
 			},
 			wantCreated: 0,
+		},
+		{
+			name: "updates record when IP exists but TTL differs",
+			records: []cloudflare.ARecord{
+				{
+					ID:      "record-1",
+					Name:    name,
+					Content: ip,
+					TTL:     dns.TTL(600),
+				},
+			},
+			wantCreated: 0,
+			wantUpdated: []fakeRecordChange{
+				{
+					recordID: "record-1",
+					name:     name,
+					ip:       ip,
+					ttl:      dns.TTL1,
+				},
+			},
 		},
 	}
 
@@ -116,6 +137,10 @@ func TestSyncer_Append(t *testing.T) {
 
 			if tt.wantCreated == 1 && client.created[0].ip != ip {
 				t.Fatalf("created IP = %v, want %v", client.created[0].ip, ip)
+			}
+
+			if !reflect.DeepEqual(client.updated, tt.wantUpdated) {
+				t.Fatalf("updated records = %v, want %v", client.updated, tt.wantUpdated)
 			}
 		})
 	}
