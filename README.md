@@ -83,7 +83,7 @@ docker run --rm \
   -e CF_API_TOKEN=xxxx \
   -e ZONE_ID=xxxx \
   -e DOMAIN_NAME=home.example.com \
-  ghcr.io/fudoge/cf-ddns-client:0.1.0 \
+  ghcr.io/fudoge/cf-ddns-client:0.2.1 \
   --mode replace \
   --timeout 2 \
   --ttl 1 \
@@ -120,7 +120,7 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: cfddns
-              image: ghcr.io/fudoge/cf-ddns-client:0.1.0
+              image: ghcr.io/fudoge/cf-ddns-client:0.2.1
               imagePullPolicy: IfNotPresent
               args:
                 - --mode
